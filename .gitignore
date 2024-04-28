@@ -1,0 +1,6 @@
+# Ignore files and folders from the client
+client/node_modules/
+
+# Ignore files and folders from the server
+
+# Ignore any other files or folders 
