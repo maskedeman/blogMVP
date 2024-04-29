@@ -18,7 +18,7 @@ from typing import Optional
 app=FastAPI()
 
 origins = [
-    "http://localhost:5173",  # React app
+    "*",  # React app
     # add any other origins that need to access the server
 ]
 
@@ -133,7 +133,7 @@ def login(user_details: UserBase, db: Session = Depends(get_db)):
     
     access_token = auth_handler.encode_token(user.username and user.password and user.role)
     refresh_token = auth_handler.encode_refresh_token(user.username and user.password and user.role)
-    return {'access_token': access_token, 'refresh_token': refresh_token}
+    return {'access_token': access_token, 'refresh_token': refresh_token,'user_id': user.user_id, 'role': user.role, 'username': user.username}
 
 @app.get('/refresh_token')
 def refresh_token(credentials: HTTPAuthorizationCredentials = Security(security)):
@@ -198,17 +198,24 @@ async def create_post(post: PostBase, db: db_dependency, credentials: HTTPAuthor
     db.commit()
     return db_post
 
+def post_presenter(post, category):
+    post_dict = post.to_dict()
+    post_dict.pop('category_id', None)  # Remove the category_id from the post_dict
+    post_dict['comments'] = [comment.to_dict() for comment in post.comments]
+    post_dict['category'] = category.to_dict() if category else None
+    return post_dict
+
 @app.get("/posts/{post_id}", status_code=status.HTTP_200_OK)
 async def read_post(post_id: int, db: db_dependency):
     post = db.query(model.Post).filter(model.Post.post_id == post_id).first()
     if post is None:
         raise HTTPException(status_code=404, detail='Post was not found')
     
-    # Convert post and its comments to dictionaries
-    post_dict = post.to_dict()
-    post_dict['comments'] = [comment.to_dict() for comment in post.comments]
+    # Fetch the category
+    category = db.query(model.Category).filter(model.Category.category_id == post.category_id).first()
     
-    return post_dict
+    # Use the presenter to format the post, its comments, and its category
+    return post_presenter(post, category)
 
 @app.post("/comment/", status_code=status.HTTP_201_CREATED)
 async def create_comment(comment: CommentBase, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):

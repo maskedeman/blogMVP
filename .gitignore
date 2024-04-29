@@ -6,6 +6,7 @@ server/myenv/
 # Ignore any other files or folders 
 server/__pycache__
 server/database.py
+/myenv/
 # Ignore Python compiled files
 __pycache__/
 *.py[cod]

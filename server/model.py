@@ -30,7 +30,7 @@ class Post(Base):
     # Relationship to the Tag model
     tags = relationship("Tag", secondary=post_tags, back_populates="posts")
     comments = relationship("Comment", back_populates="post")
-
+    category = relationship('Category', back_populates='posts')
     def to_dict(self):
         post_dict = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         post_dict['tags'] = [tag.to_dict() for tag in self.tags]
@@ -50,11 +50,13 @@ class Comment(Base):
 class Category(Base):
     __tablename__ = 'categories'
 
-    category_id = Column(Integer, primary_key=True)
-    category = Column(String(255))
+    category_id = Column(Integer, primary_key=True, index=True)
+    category = Column(String, unique=True, index=True)
 
     # Relationship to the Post model
-    posts = relationship('Post', backref='category')
+    posts = relationship('Post', back_populates='category')
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 class Tag(Base):
     __tablename__ = 'tags'

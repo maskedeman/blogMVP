@@ -11,10 +11,10 @@ interface Post {
     author: string;
     creation_date: string;
     user_id: number;
-    category_id: number;
+    category: { category_id: number; category: string };
     tags: { tag_id: number; tag: string }[];
     comments: any[];
-}
+}   
 
 const Detail: React.FC = () => {
     const [post, setPost] = useState<Post | null>(null);
@@ -78,9 +78,11 @@ const Detail: React.FC = () => {
         return <div>Create a Post</div>;
     }
     return (
+       
+        console.log(post),
         <div className="p-6 bg-white rounded shadow mx-auto w-full lg:w-1/2">
             <h2 className="text-2xl font-bold mb-2 text-left">{post.title}</h2>
-            <p className="text-sm text-gray-500">Category ID: {post.category_id}</p><br/>
+            <p className="text-md font-bold  text-pink-500">{post.category.category}</p><br/>
             <p className="text-gray-700">Description: <br/>{post.content}</p><br/>
             <p className="text-sm text-gray-500 mt-2 font-bold text-center">Curated by {post.author} on {new Date(post.creation_date).toDateString()}</p><br/>
             <div className="flex flex-wrap">
