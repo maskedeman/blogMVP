@@ -2,5 +2,9 @@
 client/node_modules/
 
 # Ignore files and folders from the server
-
+server/myenv/
 # Ignore any other files or folders 
+server/__pycache__
+# Ignore Python compiled files
+__pycache__/
+*.py[cod]

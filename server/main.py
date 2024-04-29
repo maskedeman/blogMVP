@@ -10,11 +10,25 @@ from sqlalchemy.orm import Session
 from typing import Annotated
 import datetime
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.middleware.cors import CORSMiddleware
 from auth import Auth
 import re 
 from typing import Optional
 
 app=FastAPI()
+
+origins = [
+    "http://localhost:5173",  # React app
+    # add any other origins that need to access the server
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 security = HTTPBearer()
 auth_handler = Auth()
 
@@ -24,6 +38,7 @@ auth_handler = Auth()
 model.Base.metadata.create_all(bind = engine)
 
 class PostList(BaseModel):
+    post_id:int
     title: str
     author: str
     creation_date: str
@@ -33,6 +48,7 @@ class PostBase(PostList):
     category_id: str
     tag_id: List[str]
 
+    
 class UserBase(BaseModel):
     username: str
     password: str
@@ -158,12 +174,11 @@ async def create_post(post: PostBase, db: db_dependency, credentials: HTTPAuthor
     if username is None:
         raise HTTPException(status_code=401, detail='Invalid token')
     
-    # Query the database to get the user object
     user = db.query(model.User).filter(model.User.username == username).first()
     if user is None:
         raise HTTPException(status_code=404, detail='User not found')
 
-    tags = [db.query(model.Tag).filter(model.Tag.tag == tag_name).first() for tag_name in post.tag_names]
+    tags = [db.query(model.Tag).filter(model.Tag.tag_id == tag_id).first() for tag_id in post.tag_id]
     if any(tag is None for tag in tags):
         raise HTTPException(status_code=400, detail='One or more tags not found')
 
@@ -171,13 +186,14 @@ async def create_post(post: PostBase, db: db_dependency, credentials: HTTPAuthor
     if category is None:
         raise HTTPException(status_code=400, detail='Category not found')
 
-    post_dict = post.dict()
+    post_dict = post.dict(exclude={"tag_id"})
     post_dict['user_id'] = user.user_id
     post_dict['author'] = user.username
-    post_dict['category_id'] = category.category_id  # Use the category ID instead of the name
+    post_dict['creation_date'] = datetime.datetime.now()
+    post_dict['category_id'] = category.category_id
 
-    # Create the post in the database
     db_post = model.Post(**post_dict)
+    db_post.tags = tags
     db.add(db_post)
     db.commit()
     return db_post
@@ -301,15 +317,16 @@ def read_posts(category: Optional[str] = None, tag: Optional[str] = None, db: Se
         query = query.filter(model.Post.category == category)
     
     if tag:
-        query = query.filter(model.Post.tag == tag)
+        tag_obj = db.query(model.Tag).filter(model.Tag.tag == tag).first()
+        if tag_obj:
+            query = query.filter(model.Post.tag_id.contains(tag_obj))
     
     posts = query.all()
     
     return [PostList(
+        post_id=post.post_id,
         title=post.title,
         author=post.author,
-        tag=post.tag,
-        category=post.category,
         creation_date=post.creation_date
     ) for post in posts]
 

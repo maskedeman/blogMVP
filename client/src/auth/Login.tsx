@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import passwordValidator from 'password-validator';
 import api from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { AuthContext } from './Context'; // replace with the actual path to your AuthContext
 
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [showForm, setShowForm] = useState(true);
+
+    const { setAccessToken, setRefreshToken } = useContext(AuthContext);
 
     const handlePasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setPassword(event.target.value);
@@ -25,6 +28,10 @@ const Login: React.FC = () => {
                 // Store the tokens in local storage
                 localStorage.setItem('accessToken', response.data.accessToken);
                 localStorage.setItem('refreshToken', response.data.refreshToken);
+
+                // Update the tokens in the context
+                setAccessToken(response.data.accessToken);
+                setRefreshToken(response.data.refreshToken);
     
                 toast.success('Login successful', {
                     position: "top-right",

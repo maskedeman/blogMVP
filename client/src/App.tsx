@@ -5,6 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import CreatePost from './pages/CreatePost';
 import './index.css';
 import NavBar from './components/NavBar';
+import Detail from './pages/Detail';
 
 const App = () => {
   return (
@@ -14,12 +15,11 @@ const App = () => {
   <NavBar />
 
       <Routes>
-        <Route element={<Home />}>
-
-        <Route path="/create-post" element={<CreatePost />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
+    <Route path="/posts" element={<Home />} />
+    <Route path="/posts/:postId" element={<Detail />} /> {/* Add this line */}
+    <Route path="/create-post" element={<CreatePost />} />
+    <Route path="*" element={<NotFound />} />
+</Routes>
     </Router>
     </>
   );

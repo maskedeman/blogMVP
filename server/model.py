@@ -28,7 +28,13 @@ class Post(Base):
     category_id = Column(Integer, ForeignKey('categories.category_id'))
 
     # Relationship to the Tag model
-    tags = relationship('Tag', secondary=post_tags, backref='posts')
+    tags = relationship("Tag", secondary=post_tags, back_populates="posts")
+    comments = relationship("Comment", back_populates="post")
+
+    def to_dict(self):
+        post_dict = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        post_dict['tags'] = [tag.to_dict() for tag in self.tags]
+        return post_dict
 
 class Comment(Base):
     __tablename__ = 'comments'
@@ -37,6 +43,9 @@ class Comment(Base):
     comment = Column(String(255))
     user_id = Column(Integer, ForeignKey('users.user_id'))
     post_id = Column(Integer, ForeignKey('posts.post_id'))
+    post = relationship("Post", back_populates="comments")
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
 class Category(Base):
     __tablename__ = 'categories'
@@ -53,4 +62,7 @@ class Tag(Base):
     tag_id = Column(Integer, primary_key=True)
     tag = Column(String(255))
 
-    # No need for a relationship to the Post model, it's already defined in Post
+    # Relationship to the Post model
+    posts = relationship("Post", secondary=post_tags, back_populates="tags")
+    def to_dict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
