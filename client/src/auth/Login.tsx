@@ -3,7 +3,7 @@ import passwordValidator from 'password-validator';
 import api from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import AuthContext from './Context'; // replace with the actual path to your AuthContext
+import AuthContext from './Context';
 import { useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
@@ -13,7 +13,8 @@ const Login: React.FC = () => {
     const [showForm, setShowForm] = useState(true);
     const navigate = useNavigate();
 
-    // const { setAccessToken, setRefreshToken } = useContext(AuthContext);
+
+    const { logIn } = useContext(AuthContext);
 
     const handlePasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setPassword(event.target.value);
@@ -21,34 +22,30 @@ const Login: React.FC = () => {
 
     const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-
+       
+        // Create a credentials object
+        const credentials = {
+            username,
+            password,
+        };
         // Submit the form to /login API
         try {
-            const response = await api.post('/login', { username, password });
+            const response = await logIn(credentials);
     
-            if (response.status === 200) {
-                // Store the tokens in local storage
-                localStorage.setItem('accessToken', response.data.accessToken);
-                localStorage.setItem('refreshToken', response.data.refreshToken);
-
-                // Update the tokens in the context
-                // setAccessToken(response.data.accessToken);
-                // setRefreshToken(response.data.refreshToken);
-    
-                toast.success('Login successful', {
-                    position: "top-right",
-                    autoClose: 5000
-                });
-                setUsername(''); // Clear the username field
-                setPassword(''); // Clear the password field
-                navigate('/create'); // Redirect to create page
+            if (response && response.status === 200) {
+                if (toast && typeof toast.success === 'function') {
+                    toast.success('Login successful', {
+                        position: "top-right",
+                        autoClose: 5000
+                    });
+                } else {
+                    console.error('toast.success is not a function');
+                }
+                // Redirect to /posts page
+            navigate('/posts');
+            console.log('Should have navigated to /posts/');
             } else {
-                toast.error('Login failed', {
-                    position: "top-right",
-                    autoClose: 5000
-                });
-                setUsername(''); // Clear the username field
-                setPassword(''); // Clear the password field
+                console.error('response is undefined or status is not a property of response');
             }
         } catch (error: any) {
             console.error('Error:', error);

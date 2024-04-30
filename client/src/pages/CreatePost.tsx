@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import api from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { WithContext as ReactTags } from 'react-tag-input';
+import AuthContext from '../auth/Context';
+
 
 
 type Post = {
     title: string;
+    author?: string; // add this line
+    creation_date: string;
     content: string;
-    category: string;
-    tag: string;
-};
+    category_id: string;
+    tag_ids: string[];
+}
 type Tag = {
     tag_id: number;
     tag: string;
@@ -31,13 +35,13 @@ const CreatePost: React.FC = () => {
     const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
+    const { user } = useContext(AuthContext);
+    const [allTags, setAllTags] = useState<Tag[]>([]);
     
-    
-
     useEffect(() => {
         const fetchTags = async () => {
             const response = await api.get<Tag[]>('/tags/');
+            setAllTags(response.data);
             setSuggestedTags(response.data.map(tagObj => tagObj.tag));
         };
     
@@ -62,11 +66,17 @@ const CreatePost: React.FC = () => {
     };
     const handleCreatePost = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        const tagIds = selectedTags.map(tagName => {
+            const tag = allTags.find(t => t.tag === tagName);
+            return tag ? tag.tag_id.toString() : '';
+        });
         const postData: Post = {
             title: title,
+            author: "user?.username",
+            creation_date: new Date().toISOString(),
             content: content,
-            category: category ? category.toString() : '',
-            tag: selectedTags.join(','),
+            category_id: category ? category.toString() : '',
+            tag_ids: tagIds,
         };
         // Submit the form to /createPost API
         try {
@@ -79,23 +89,28 @@ const CreatePost: React.FC = () => {
                 position: "top-right",
                 autoClose: 5000
             });
-            setTitle(''); // Clear the title field
-            setContent(''); // Clear the content field
-            setCategory(0); // Reset the category field
-            setTag(''); // Clear the tag field
-            setSelectedTags([]); // Clear the selected tags
+            // setTitle(''); // Clear the title field
+            // setContent(''); // Clear the content field
+            // setCategory(0); // Reset the category field
+            // setTag(''); // Clear the tag field
+            // setSelectedTags([]); // Clear the selected tags
 
         }
     };
     const createPost = async (post: Post) => {
-        const accessToken = localStorage.getItem('accessToken');
-        const response = await api.post('/posts', post, {
+        const accessToken = localStorage.getItem('access_token');
+        console.log('accessToken:', accessToken);
+        if (!accessToken) {
+             toast.error('Access token not found');
+        }
+        const response = await api.post('/posts/', post, {
             headers: {
-                Authorization: `Bearer ${accessToken}`
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
             }
         });
     
-        if (response.status === 200) {
+        if (response.status === 201) {
             toast.success('Post creation successful', {
                 position: "top-right",
                 autoClose: 5000
@@ -110,33 +125,29 @@ const CreatePost: React.FC = () => {
                 position: "top-right",
                 autoClose: 5000
             });
-            setTitle(''); // Clear the title field
-            setContent(''); // Clear the content field
-            setCategory(0); // Reset the category field
-            setTag(''); // Clear the tag field
+            // setTitle(''); // Clear the title field
+            // setContent(''); // Clear the content field
+            // setCategory(0); // Reset the category field
+            // setTag(''); // Clear the tag field
         }
     };
     if (!showForm) {
         return null;
     }
     return (
-        <div className="fixed z-10 inset-0 overflow-y-auto" onClick={() => setShowForm(false)}>
-            <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <div className="fixed inset-0 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                    <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-                </div>
 
-                <div className="inline-block align-middle bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-full max-w-3xl h-auto sm:h-3/4" onClick={(e) => e.stopPropagation()}>
-                    <div className="bg-white px-1 pt-5 pb-4 sm:p-6 sm:pb-4">
-                        <button 
-                            onClick={() => setShowForm(false)} 
-                            className="absolute right-0 top-0 m-2 border-2 hover:border-red-400 text-black font-bold py-0 px-2 rounded"
-                        >
-                            X
-                        </button>
-                        <h2 className="text-2xl font-bold mb-3 mr-4  text-center">Create Post</h2>
+        <div className="fixed z-10 inset-0 overflow-y-auto" onClick={() => setShowForm(false)}>
+        <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed transition-opacity" onClick={(e) => e.stopPropagation()}>
+                <div className="absolute bg-gray-500 opacity-75"></div>
+            </div>
+    
+            <div className="inline-block align-middle bg-white rounded-lg text-left overflow-hidden  transform transition-all sm:my-8 sm:align-middle w-1/2 h-1/2" onClick={(e) => e.stopPropagation()}>
+                <div className="bg-white px-1 pt-5 pb-4 sm:p-6 sm:pb-4">
+                      
+                        <h2 className="text-2xl font-bold mb-3  mt-4 text-center">Create Post</h2>
                         <form onSubmit={handleCreatePost}>
-                            <div className="mb-4">
+                            <div className="mb-7 mt-7">
                                 <label className="block text-gray-700">Title:</label>
                                 <input
                                     type="text"
@@ -146,7 +157,7 @@ const CreatePost: React.FC = () => {
                                 />
                             </div>
                             
-                            <div className="mb-4">
+                            <div className="mb-7 mt-7">
                                 <label className="block text-gray-700">Content:</label>
                                 <textarea
                                     value={content}
@@ -154,7 +165,7 @@ const CreatePost: React.FC = () => {
                                     className="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full h-40"
                                 />
                             </div>
-                            <div className="mb-4">
+                            <div className="mb-7 mt-7">
                 <label className="block text-gray-700">Category:</label>
                 <select
                     value={category || ''}
@@ -169,7 +180,7 @@ const CreatePost: React.FC = () => {
                     ))}
                 </select>
             </div>
-            <div className="mb-4">
+            <div className="mb-7 mt-7">
     <label className="block text-gray-700">Tags:</label>
     {selectedTags.map((tag, index) => (
         <span
@@ -209,7 +220,7 @@ const CreatePost: React.FC = () => {
 </div>
                             <button 
                                 type="submit" 
-                                className="w-full py-2 px-4 border-black text-green-700 bg-green-200 rounded cursor-pointer hover:text-yellow-300 border-2 hover:bg-custom-blue active:bg-custom-blue"
+                                className="w-full mb-7 mt-7 py-2 px-4 border-black text-green-700 bg-green-200 rounded cursor-pointer hover:text-yellow-300 border-2 hover:bg-custom-blue active:bg-custom-blue"
                             >
                                 Create Post
                             </button>
@@ -218,6 +229,7 @@ const CreatePost: React.FC = () => {
                 </div>
             </div>
         </div>
+
     );
 };
 

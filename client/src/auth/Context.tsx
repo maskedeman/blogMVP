@@ -1,24 +1,32 @@
-import { AxiosError } from 'axios'
-import { createContext } from 'react'
+import { AxiosResponse } from 'axios';
+import { createContext } from 'react';
 
 export type User = {
-  email: string
-  permissions: string[]
-  roles: string[]
-}
+  username: string;
+  user_id: number;
+  access_token: string;
+  refresh_token: string;
+  roles: string[];
+};
 
 export type SignInCredentials = {
-  email: string
-  password: string
+  username: string;
+  password: string;
+};
+
+export interface AuthContextData {
+  user: User | null;
+  isAuthenticated: boolean;
+  loadingUserData: boolean;
+  logIn: (credentials: SignInCredentials) => Promise<AxiosResponse<any, any>>;
+  signOut: () => void;
 }
 
-export type AuthContextData = {
-  user?: User
-  isAuthenticated: boolean
-  loadingUserData: boolean
-  signIn: (credentials: SignInCredentials) => Promise<void | AxiosError>
-  signOut: () => void
-}
-
-export const AuthContext = createContext({} as AuthContextData);
+export const AuthContext = createContext<AuthContextData>({
+  user: null,
+  isAuthenticated: false,
+  loadingUserData: false,
+  logIn: async () => { throw new Error('logIn function must be overridden'); },
+  signOut: () => { throw new Error('signOut function must be overridden'); },
+});
 export default AuthContext

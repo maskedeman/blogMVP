@@ -43,10 +43,14 @@ class PostList(BaseModel):
     author: str
     creation_date: str
 
-class PostBase(PostList):
+class PostBase(BaseModel):
+    title: str
+    author: str
+    creation_date: str
     content: str
     category_id: str
-    tag_id: List[str]
+    tag_ids: List[str]
+
 
     
 class UserBase(BaseModel):
@@ -178,7 +182,7 @@ async def create_post(post: PostBase, db: db_dependency, credentials: HTTPAuthor
     if user is None:
         raise HTTPException(status_code=404, detail='User not found')
 
-    tags = [db.query(model.Tag).filter(model.Tag.tag_id == tag_id).first() for tag_id in post.tag_id]
+    tags = [db.query(model.Tag).filter(model.Tag.tag_id == tag_id).first() for tag_id in post.tag_ids]
     if any(tag is None for tag in tags):
         raise HTTPException(status_code=400, detail='One or more tags not found')
 
@@ -186,7 +190,7 @@ async def create_post(post: PostBase, db: db_dependency, credentials: HTTPAuthor
     if category is None:
         raise HTTPException(status_code=400, detail='Category not found')
 
-    post_dict = post.dict(exclude={"tag_id"})
+    post_dict = post.dict(exclude={"tag_ids"})
     post_dict['user_id'] = user.user_id
     post_dict['author'] = user.username
     post_dict['creation_date'] = datetime.datetime.now()

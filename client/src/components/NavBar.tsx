@@ -33,9 +33,11 @@ const NavBar: React.FC = () => {
                 </div>
                 {isAuthenticated && (
                     <>
-                        <span style={{ marginRight: 4 }}>{user?.email}</span>
+
+                        <span style={{ marginRight: 4 }}>{user?.username}</span>
                         <button onClick={signOut}>Logout</button>
                     </>
+                    
                 )}
             </nav>
         </div>
