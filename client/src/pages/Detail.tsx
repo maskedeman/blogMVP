@@ -80,17 +80,17 @@ const Detail: React.FC = () => {
     return (
        
         console.log(post),
-        <div className="p-6 bg-white rounded shadow mx-auto w-full lg:w-1/2">
+        <div className="p-6 bg-white rounded  mx-auto w-full lg:w-1/2">
             <h2 className="text-2xl font-bold mb-2 text-left">{post.title}</h2>
-            <p className="text-md font-bold  text-pink-500">{post.category.category}</p><br/>
-            <p className="text-gray-700">Description: <br/>{post.content}</p><br/>
-            <p className="text-sm text-gray-500 mt-2 font-bold text-center">Curated by {post.author} on {new Date(post.creation_date).toDateString()}</p><br/>
+            <p className="text-md font-bold  text-pink-500 mb-4">{post.category.category}</p>
+            <p className="text-gray-700 mb-4">{post.content}</p>
+            <p className="text-sm text-gray-500 mt-2 font-bold text-center">Curated by <span style={{ fontWeight: 'bold', color: 'black' }}>{post.author}</span> on <span style={{ fontWeight: 'bold', color: 'black' }}>{new Date(post.creation_date).toDateString()}</span></p><br/>
             <div className="flex flex-wrap">
                 {post.tags.map((tag, index) => (
                     <span key={index} className="m-1 mb-3 text-sm py-0.5 px-2 rounded bg-blue-200 text-blue-800">{tag.tag}</span>
                 ))}
             </div>
-            <p className="mt-1 text-sm font-bold  text-gray-500">Comments: {post.comments.length}</p><br/>
+            <p className="mt-1 text-sm font-bold  text-gray-500 mb-4">Comments: {post.comments.length}</p>
             <ul className="list-disc list-inside">
                 {post.comments.map((comment, index) => (
                     <li key={index} className="mb-3 text-sm text-gray-500">

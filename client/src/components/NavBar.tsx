@@ -13,7 +13,7 @@ const NavBar: React.FC = () => {
     const navigate = useNavigate();
 
     const navigateHome = () => {
-        navigate('/');
+        navigate('/posts');
     };
 
     return (

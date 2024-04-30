@@ -22,7 +22,7 @@ const App = () => {
         <Route path="/posts" element={<PublicRoute><Home /></PublicRoute>} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-        <Route path="/create" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
+        <Route path="/create" element={<PublicRoute><CreatePost /></PublicRoute>} />
         <Route path="/posts/:postId" element={<PublicRoute><Detail /></PublicRoute>} />
         <Route path="*" element={<PublicRoute><NotFound /></PublicRoute>} />
       </Routes>

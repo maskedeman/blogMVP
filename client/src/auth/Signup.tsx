@@ -3,17 +3,17 @@ import passwordValidator from 'password-validator';
 import api from '../api';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useNavigate } from 'react-router-dom';
 
 
 const Signup: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [passwordError, setPasswordError] = useState('');
-    const [showForm, setShowForm] = useState(true);
-
     const handlePasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setPassword(event.target.value);
     };
+    const navigate = useNavigate();
 
     const handleSignup = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -44,7 +44,8 @@ const Signup: React.FC = () => {
                 });
                 setUsername(''); // Clear the username field
                 setPassword(''); // Clear the password field
-                setShowForm(false); // Close the component
+                navigate('/login');
+
             } else {
                 toast.error('Signup failed', {
                     position: "top-right",
@@ -52,6 +53,7 @@ const Signup: React.FC = () => {
                 });
                 setUsername(''); // Clear the username field
                 setPassword(''); // Clear the password field
+                  // Redirect to login page
             }
         } catch (error: any) {
             console.error('Error:', error);
@@ -65,56 +67,50 @@ const Signup: React.FC = () => {
         }
     };
 
-    if (!showForm) {
-        return null;
-    }
-
     return (
-        <div className="fixed z-10 inset-0 overflow-y-auto" onClick={() => setShowForm(false)}>
-        <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
+        <div className="min-h-20vh flex justify-center py-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
+            <div className="max-w-md w-full space-y-1 ">
+                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 mb-5 ">Sign up</h2>
+                <form className="mt-8 space-y-6" onSubmit={handleSignup}>
+                    <div className="rounded-md shadow-sm -space-y-px ">
+                        <div>
+                            <label htmlFor="username" className="sr-only">Username</label>
+                            <input 
+                                id="username" 
+                                name="username" 
+                                type="text" 
+                                required 
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" 
+                                placeholder="Username" 
+                                value={username} 
+                                onChange={(e) => setUsername(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="password" className="sr-only">Password</label>
+                            <input 
+                                id="password" 
+                                name="password" 
+                                type="password" 
+                                required 
+                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm" 
+                                placeholder="Password" 
+                                value={password} 
+                                onChange={handlePasswordChange}
+                            />
+                            {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
+                        </div>
+                    </div>
 
-            <div className="inline-block align-middle bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle w-custom h-custom" onClick={(e) => e.stopPropagation()}>
-                <div className="bg-white px-1 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <button 
-                        onClick={() => setShowForm(false)} 
-                        className="absolute right-0 top-0 m-2 border-2 hover:border-red-400 text-black font-bold py-0 px-2 rounded"
-                    >
-                        X
-                    </button>
-                <h2 className="text-2xl font-bold mb-3 mr-4  text-center">Signup</h2>
-                <form onSubmit={handleSignup}>
-                    <div className="mb-4">
-                        <label className="block text-gray-700">Username:</label>
-                        <input
-                            type="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            className="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full"
-                        />
+                    <div>
+                        <button 
+                            type="submit" 
+                            className="w-full py-2 px-4 border-black text-green-700 bg-green-200 rounded cursor-pointer hover:text-yellow-300 border-2 hover:bg-custom-blue active:bg-custom-blue  overflow-hidden"
+                        >
+                            Sign up
+                        </button>
                     </div>
-                    <div className="mb-4">
-                        <label htmlFor="password" className="block text-gray-700">Password:</label>
-                        <input
-                            type="password"
-                            id="password"
-                            value={password}
-                            onChange={handlePasswordChange}
-                            className="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full"
-                        />
-                        {passwordError && <p className="text-red-500 text-sm mt-1">{passwordError}</p>}
-                    </div>
-                    <button 
-    type="submit" 
-    className="w-full py-2 px-4 border-black text-green-700 bg-green-200 rounded cursor-pointer hover:text-yellow-300 border-2 hover:bg-custom-blue active:bg-custom-blue"
->
-    Signup
-</button>
                 </form>
-                </div>
-                </div>
             </div>
         </div>
     );
