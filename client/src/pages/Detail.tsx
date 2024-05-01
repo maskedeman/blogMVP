@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import api from "../api";
-import { AuthContext } from '../auth/Context'; // replace with the actual path to your AuthContext
+import { AuthContext } from '../auth/Context';
 import { Link } from 'react-router-dom';
 
 interface Post {
@@ -20,11 +20,11 @@ const Detail: React.FC = () => {
     const [post, setPost] = useState<Post | null>(null);
     const [comment, setComment] = useState('');
     const { postId } = useParams<{ postId: string }>();
-    const { user } = useContext(AuthContext); // get the user from the context
+    const { user } = useContext(AuthContext); 
 
+    const accessToken = localStorage.getItem('access_token');
   
 
-    useEffect(() => {
         const fetchPost = async () => {
             try {
                 const response = await api.get(`/posts/${postId}`, {
@@ -38,9 +38,9 @@ const Detail: React.FC = () => {
                 console.error('Error fetching post:', error);
             }
         };
-
-        fetchPost();
-    }, [postId]);
+        useEffect(() => {
+            fetchPost();
+        }, [postId]);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -52,28 +52,25 @@ const Detail: React.FC = () => {
        
    
 
-    // if (isNaN(user_id) || !post_id) {
-    //     console.error('Invalid user_id or post_id');
-    //     return;
-    // }
+   
+    const commentData = {
+        comment: comment,
+        user_id:  user?.user_id, 
+        post_id:postId
+    };
 
-        const response = await fetch('http://localhost:8000/comment/', {
-            method: 'POST',
-            headers: {
-                'accept': 'application/json',
-                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MTQyOTA3NDMsImlhdCI6MTcxNDI4ODk0Mywic2NvcGUiOiJhY2Nlc3NfdG9rZW4iLCJzdWIiOiJhZG1pbiJ9.4tF2ueGfx_cfGE8M-3CUlANj9OBdACt3kl2h453A2ko',
-                'Content-Type': 'application/json'
-            },
-
-            body: JSON.stringify({
-                comment: comment,
-                user_id:  user?.user_id, // replace with actual user id
-                post_id:postId // replace with actual post id
-            })
-        });
+    const response = await api.post('/comment/', commentData, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+        }
+    });
+       
+        if (response.status === 201) {
+            setComment('');
+            fetchPost(); // Fetch the post again after successful comment submission
+        }
     
-        const data = await response.json();
-        console.log(data);
     }
 
     if (!post) {
@@ -95,8 +92,8 @@ const Detail: React.FC = () => {
             <p className="mt-1 text-sm font-bold  text-gray-500 mb-4">Comments: {post.comments.length}</p>
             <ul className=" list-inside">
                 {post.comments.map((comment, index) => (
-                    <li key={index} className="mb-3 text-sm text-gray-500">
-                        <p>{comment.user_id}</p>
+                    <li key={index} className="mb-3 ml-3 text-sm text-gray-500">
+                        <p className='font-bold text-black'>{comment.username}</p>
                         <p>{comment.comment}</p>
                     </li>
                 ))}

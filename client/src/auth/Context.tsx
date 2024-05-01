@@ -6,7 +6,7 @@ export type User = {
   user_id: number;
   access_token: string;
   refresh_token: string;
-  roles: string[];
+  role: string;
 };
 
 export type SignInCredentials = {

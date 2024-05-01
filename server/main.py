@@ -40,6 +40,7 @@ model.Base.metadata.create_all(bind = engine)
 class PostList(BaseModel):
     post_id:int
     title: str
+    user_id: int    
     author: str
     creation_date: str
 
@@ -135,8 +136,8 @@ def login(user_details: UserBase, db: Session = Depends(get_db)):
     if not auth_handler.verify_password(user_details.password, user.password):
         raise HTTPException(status_code=401, detail='Invalid password')
     
-    access_token = auth_handler.encode_token(user.username and user.password and user.role)
-    refresh_token = auth_handler.encode_refresh_token(user.username and user.password and user.role)
+    access_token = auth_handler.encode_token(user.user_id)
+    refresh_token = auth_handler.encode_refresh_token(user.user_id)
     return {'access_token': access_token, 'refresh_token': refresh_token,'user_id': user.user_id, 'role': user.role, 'username': user.username}
 
 @app.get('/refresh_token')
@@ -174,11 +175,11 @@ async def read_user(user_id: int, db: db_dependency):
 @app.post("/posts/", status_code=status.HTTP_201_CREATED)
 async def create_post(post: PostBase, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    username = auth_handler.decode_token(token)
-    if username is None:
+    user_id = auth_handler.decode_token(token)
+    if user_id is None:
         raise HTTPException(status_code=401, detail='Invalid token')
     
-    user = db.query(model.User).filter(model.User.username == username).first()
+    user = db.query(model.User).filter(model.User.user_id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail='User not found')
 
@@ -224,16 +225,16 @@ async def read_post(post_id: int, db: db_dependency):
 @app.post("/comment/", status_code=status.HTTP_201_CREATED)
 async def create_comment(comment: CommentBase, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    username = auth_handler.decode_token(token)
-    if username is None:
+    user_id = auth_handler.decode_token(token)
+    if user_id is None:
         raise HTTPException(status_code=401, detail='Invalid credentials')
-    db_user = db.query(model.User).filter(model.User.username == username).first()
+    db_user = db.query(model.User).filter(model.User.user_id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=400, detail='User not found')
     post = db.query(model.Post).filter(model.Post.post_id == comment.post_id).first()
     if post is None:
         raise HTTPException(status_code=400, detail='Post not found')
-    db_comment = model.Comment(user_id=db_user.user_id, post_id=comment.post_id, comment=comment.comment)
+    db_comment = model.Comment(user_id=db_user.user_id, username=db_user.username, post_id=comment.post_id, comment=comment.comment)
     db.add(db_comment)
     db.commit()
     db.refresh(db_comment)
@@ -249,12 +250,12 @@ async def read_comment(comment_id: int, db: db_dependency):
 @app.post("/category/", status_code=status.HTTP_201_CREATED)
 async def create_category(category: CategoryBase, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    username = auth_handler.decode_token(token)
-    if username is None:
+    user_id = auth_handler.decode_token(token)
+    if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     
     # Query the database to get the user object
-    user = db.query(model.User).filter(model.User.username == username).first()
+    user = db.query(model.User).filter(model.User.user_id == user_id).first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
    
@@ -277,12 +278,12 @@ async def read_category(category_id: int, db: db_dependency):
 @app.post("/tag/", status_code=status.HTTP_201_CREATED)
 async def create_tag(tag: TagBase, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    username = auth_handler.decode_token(token)
-    if username is None:
+    user_id = auth_handler.decode_token(token)
+    if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     
     # Query the database to get the user object
-    user = db.query(model.User).filter(model.User.username == username).first()
+    user = db.query(model.User).filter(model.User.user_id == user_id).first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     
@@ -321,16 +322,21 @@ def read_categories(category_id: Optional[int] = None,db: Session = Depends(get_
         return categories
 
 @app.get("/posts/", response_model=List[PostList], status_code=status.HTTP_200_OK)
-def read_posts(category: Optional[str] = None, tag: Optional[str] = None, db: Session = Depends(get_db)):
+def read_posts(user_id: Optional[int] = None, category: Optional[str] = None, tag: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(model.Post)
     
+    if user_id:
+        query = query.filter(model.Post.user_id == user_id)
+    
     if category:
-        query = query.filter(model.Post.category == category)
+        category_obj = db.query(model.Category).filter(model.Category.category == category).first()
+        if category_obj:
+            query = query.filter(model.Post.category == category_obj)
     
     if tag:
         tag_obj = db.query(model.Tag).filter(model.Tag.tag == tag).first()
         if tag_obj:
-            query = query.filter(model.Post.tag_id.contains(tag_obj))
+            query = query.filter(model.Post.tags.contains(tag_obj))
     
     posts = query.all()
     
@@ -338,6 +344,7 @@ def read_posts(category: Optional[str] = None, tag: Optional[str] = None, db: Se
         post_id=post.post_id,
         title=post.title,
         author=post.author,
+        user_id=post.user_id,
         creation_date=post.creation_date
     ) for post in posts]
 
@@ -354,10 +361,13 @@ def read_users(db: db_dependency):
 @app.delete("/user/{user_id}",status_code=status.HTTP_200_OK)
 async def delete_user(user_id: int, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    user = auth_handler.decode_token(token)
-    if user is None:
+    user_id = auth_handler.decode_token(token)
+    if user_id is None:
         raise HTTPException(status_code=401, detail='Invalid credentials')
-    
+     # Query the database to get the user object
+    user = db.query(model.User).filter(model.User.user_id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if user.role != "admin" and user.user_id != user_id:
         raise HTTPException(status_code=403, detail='Unauthorized')
     
@@ -375,17 +385,19 @@ async def delete_user(user_id: int, db: db_dependency, credentials: HTTPAuthoriz
     db.commit()
     return {"message": "User deleted successfully"}
 
-@app.delete("/post/{post_id}",status_code=status.HTTP_200_OK)
-async def delete_post(post_id: int, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
-    token = credentials.credentials
-    user = auth_handler.decode_token(token)
+def get_user_by_id(user_id: int, db: db_dependency):
+    user = db.query(model.User).filter(model.User.user_id == user_id).first()
     if user is None:
-        raise HTTPException(status_code=401, detail='Unauthorized')
+        raise HTTPException(status_code=404, detail='User not found')
+    return user
+
+@app.delete("/post/{post_id}")
+async def delete_post(post_id: int, user_id: int, db: db_dependency):
+    user = get_user_by_id(user_id, db)
     post = db.query(model.Post).filter(model.Post.post_id == post_id).first()
-    if post is None:
-        raise HTTPException(status_code=404, detail='Post not found')
     if user.role != "admin" and user.user_id != post.user_id:
         raise HTTPException(status_code=403, detail='Forbidden')
+    # Rest of your function
     db.delete(post)
     db.commit()
     return {"message": "Post deleted successfully"}
@@ -394,6 +406,7 @@ async def delete_post(post_id: int, db: db_dependency, credentials: HTTPAuthoriz
 async def delete_comment(comment_id: int, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
     user = auth_handler.decode_token(token)
+    
     if user is None:
         raise HTTPException(status_code=401, detail='Unauthorized')
     comment = db.query(model.Comment).filter(model.Comment.comment_id == comment_id).first()
@@ -411,12 +424,15 @@ async def delete_comment(comment_id: int, db: db_dependency, credentials: HTTPAu
 @app.delete("/category/{category_id}",status_code=status.HTTP_200_OK)
 async def delete_category(category_id: int, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    user = auth_handler.decode_token(token)
-    if user is None:
+    user_id = auth_handler.decode_token(token)
+    if user_id is None:
         raise HTTPException(status_code=401, detail='Unauthorized')
+    user = db.query(model.User).filter(model.User.user_id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if user.role != "admin":
         raise HTTPException(status_code=403, detail='Forbidden')
-    category = db.query(model.Category).filter(model.Category.id == category_id).first()
+    category = db.query(model.Category).filter(model.Category.category_id == category_id).first()
     if category is None:
         raise HTTPException(status_code=404, detail='Category not found')
     db.delete(category)
@@ -426,9 +442,12 @@ async def delete_category(category_id: int, db: db_dependency, credentials: HTTP
 @app.delete("/tag/{tag_id}",status_code=status.HTTP_200_OK)
 async def delete_tag(tag_id: int, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    user = auth_handler.decode_token(token)
-    if user is None:
+    user_id = auth_handler.decode_token(token)
+    if user_id is None:
         raise HTTPException(status_code=401, detail='Unauthorized')
+    user = db.query(model.User).filter(model.User.user_id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if user.role != "admin":
         raise HTTPException(status_code=403, detail='Forbidden')
     tag = db.query(model.Tag).filter(model.Tag.tag_id == tag_id).first()
@@ -441,42 +460,60 @@ async def delete_tag(tag_id: int, db: db_dependency, credentials: HTTPAuthorizat
 @app.put("/user/{user_id}", status_code=status.HTTP_200_OK)
 async def update_user(user_id: int, user: UserBase, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    user = auth_handler.decode_token(token)
-    if user is None:
+    user_id_from_token = auth_handler.decode_token(token)
+    if user_id_from_token is None:
         raise HTTPException(status_code=401, detail='Unauthorized')
-    if user.role != "admin":
-        raise HTTPException(status_code=403, detail='Forbidden')
+
+    # Check password strength
+    if not is_password_strong(user.password):
+        raise HTTPException(status_code=401, detail='Password is not strong enough') 
+
+    # Hash password
+    print (user.password)
+    hashed_password = auth_handler.encode_password(user.password)
+    print(hashed_password)
     db_user = db.query(model.User).filter(model.User.user_id == user_id).first()
     if db_user is None:
         raise HTTPException(status_code=404, detail='User not found')
     db_user.username = user.username
-    db_user.password = user.password
-    db_user.email = user.email
+    db_user.password = hashed_password
     db.commit()
     return db_user
 
 @app.put("/post/{post_id}", status_code=status.HTTP_200_OK)
 async def update_post(post_id: int, post: PostBase, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    username = auth_handler.decode_token(token)
-    if username is None:
-        raise HTTPException(status_code=401, detail='Unauthorized')
+    user_id = auth_handler.decode_token(token)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail='Invalid token')
     
-    # Query the database to get the user object
-    user = db.query(model.User).filter(model.User.username == username).first()
+    user = db.query(model.User).filter(model.User.user_id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail='User not found')
-    
+
+    tags = [db.query(model.Tag).filter(model.Tag.tag_id == tag_id).first() for tag_id in post.tag_ids]
+    if any(tag is None for tag in tags):
+        raise HTTPException(status_code=400, detail='One or more tags not found')
+
+    category = db.query(model.Category).filter(model.Category.category_id == post.category_id).first()
+    if category is None:
+        raise HTTPException(status_code=400, detail='Category not found')
+
     db_post = db.query(model.Post).filter(model.Post.post_id == post_id).first()
     if db_post is None:
         raise HTTPException(status_code=404, detail='Post not found')
     if db_post.user_id != user.user_id:
         raise HTTPException(status_code=403, detail='Forbidden')
-    
-    db_post.title = post.title
-    db_post.content = post.content
-    db_post.category_id = post.category_id
-    db_post.tag_id = post.tag_id
+
+    post_dict = post.dict(exclude={"tag_ids"})
+    post_dict['user_id'] = user.user_id
+    post_dict['author'] = user.username
+    post_dict['creation_date'] = datetime.datetime.now()
+    post_dict['category_id'] = category.category_id
+
+    for key, value in post_dict.items():
+        setattr(db_post, key, value)
+    db_post.tags = tags
     db.commit()
     return db_post
 
@@ -505,19 +542,19 @@ async def update_comment(comment_id: int, comment: CommentBase, db: db_dependenc
 @app.put("/category/{category_id}", status_code=status.HTTP_200_OK)
 async def update_category(category_id: int, category: CategoryBase, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    username = auth_handler.decode_token(token)
-    if username is None:
+    user_id = auth_handler.decode_token(token)
+    if user_id is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     
     # Query the database to get the user object
-    user = db.query(model.User).filter(model.User.username == username).first()
+    user = db.query(model.User).filter(model.User.user_id == user_id).first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
    
     if user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not have permission to update category")
     
-    db_category = db.query(model.Category).filter(model.Category.id == category_id).first()
+    db_category = db.query(model.Category).filter(model.Category.category_id == category_id).first()
     if db_category is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
     
@@ -528,12 +565,12 @@ async def update_category(category_id: int, category: CategoryBase, db: db_depen
 @app.put("/tag/{tag_id}", status_code=status.HTTP_200_OK)
 async def update_tag(tag_id: int, tag: TagBase, db: db_dependency, credentials: HTTPAuthorizationCredentials = Security(security)):
     token = credentials.credentials
-    username = auth_handler.decode_token(token)
-    if username is None:
+    user_id = auth_handler.decode_token(token)
+    if user_id is None:
         raise HTTPException(status_code=401, detail='Unauthorized')
     
     # Query the database to get the user object
-    user = db.query(model.User).filter(model.User.username == username).first()
+    user = db.query(model.User).filter(model.User.user_id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail='User not found')
     

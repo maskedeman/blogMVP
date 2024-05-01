@@ -1,5 +1,8 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import Home from "./pages/Home";
+import UpdateUser from "./pages/UpdateUser";
+import MyPosts from "./pages/MyPosts";
+import UpdatePost from "./pages/UpdatePost";
 import NotFound from "./pages/NotFound";
 import { ToastContainer } from 'react-toastify';
 import CreatePost from './pages/CreatePost';
@@ -12,6 +15,7 @@ import PublicRoute from '../src/routes/Public'
 import PrivateRoute from '../src/routes/Private'
 import AuthProvider from './auth/AuthProvider';
 
+
 const App = () => {
   return (
     <AuthProvider>
@@ -23,12 +27,14 @@ const App = () => {
           <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
           <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
           <Route path="/create" element={<PrivateRoute><CreatePost /></PrivateRoute>} />
+          <Route path="/update-user" element={<PrivateRoute><UpdateUser /></PrivateRoute>} />
+          <Route path="/my-posts" element={<PrivateRoute><MyPosts /></PrivateRoute>} />
+          <Route path="/update-post/:postId" element={<PrivateRoute><UpdatePost /></PrivateRoute>} />
           <Route path="/posts/:postId" element={<Detail />} />
-          <Route path="*" element={<PublicRoute><NotFound /></PublicRoute>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </AuthProvider>
   );
 };
-
 export default App;

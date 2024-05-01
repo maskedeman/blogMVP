@@ -33,7 +33,7 @@ const Signup: React.FC = () => {
             return;
         }
 
-        // Submit the form to /signup API
+        
         try {
             const response = await api.post('/signup', { username, password });
     
@@ -51,9 +51,8 @@ const Signup: React.FC = () => {
                     position: "top-right",
                     autoClose: 5000
                 });
-                setUsername(''); // Clear the username field
-                setPassword(''); // Clear the password field
-                  // Redirect to login page
+              
+                 
             }
         } catch (error: any) {
             console.error('Error:', error);
@@ -62,8 +61,7 @@ const Signup: React.FC = () => {
                 position: "top-right",
                 autoClose: 5000
             });
-            setUsername(''); // Clear the username field
-            setPassword(''); // Clear the password field
+          
         }
     };
 
@@ -84,6 +82,7 @@ const Signup: React.FC = () => {
                                 placeholder="Username" 
                                 value={username} 
                                 onChange={(e) => setUsername(e.target.value)}
+                                
                             />
                         </div>
                         <div>

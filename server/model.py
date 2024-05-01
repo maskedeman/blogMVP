@@ -40,6 +40,7 @@ class Comment(Base):
     __tablename__ = 'comments'
 
     comment_id = Column(Integer, primary_key=True)
+    username = Column(String(255))
     comment = Column(String(255))
     user_id = Column(Integer, ForeignKey('users.user_id'))
     post_id = Column(Integer, ForeignKey('posts.post_id'))

@@ -4,23 +4,24 @@ import { ErrorBoundary } from 'react-error-boundary'
 import ErrorState from '../components/ErrorState'
 import Loader from '../components/Loader'
 import {useSession} from '../components/Hooks'
+import NavBar from '../components/NavBar';
 
 type User = {
     permissions: string[]
-    roles: string[]
+    role: string
   }
   
   type Params = {
     user?: User
     permissions?: string[]
-    roles?: string[]
+    role?: string
   }
   
   export function validateUserPermissions(params: Params) {
-    const { user, permissions, roles } = params
+    const { user, permissions, role } = params
   
     let hasAllPermissions = true
-    let hasAllRoles = true
+    let hasRole = false
   
     if (permissions?.length) {
       const userPermissions = user?.permissions || []
@@ -30,34 +31,32 @@ type User = {
       })
     }
   
-    if (roles?.length) {
-      const userRoles = user?.roles || []
+    if (role) {
+      const userRole = user?.role || ''
   
-      hasAllRoles = roles.every((role) => {
-        return userRoles.includes(role)
-      })
+      hasRole = userRole === role
     }
   
-    return { hasAllPermissions, hasAllRoles }
-  }
+    return { hasAllPermissions, hasRole }
+}
   
 
 type Props = {
     permissions?: string[]
-    roles?: string[]
+    role?: string
     redirectTo?: string
     children: ReactNode
 }
 
 function PrivateRoute(props: Props) {
-  const { permissions, roles, redirectTo = '/login', children } = props
+  const { permissions, role, redirectTo = '/login', children } = props
 
   const { isAuthenticated, user, loadingUserData } = useSession()
-  const { hasAllPermissions } = validateUserPermissions({
-    user,
-    permissions,
-    roles
-  })
+//   const { hasAllPermissions, hasRole } = validateUserPermissions({
+//     user: user ? { ...user, permissions: [], role: user.role } : undefined,
+//     permissions,
+//     role
+// });
 
   if (loadingUserData) {
     return null
@@ -67,17 +66,20 @@ function PrivateRoute(props: Props) {
     return <Navigate to={redirectTo} />
   }
 
-  if (!hasAllPermissions) {
-    return <Navigate to="/" />
-  }
+  // if (!hasAllPermissions || !hasRole) {
+  //   return <Navigate to="/posts" />
+  // }
 
   return (
+    
+    <>
+
     <ErrorBoundary
       fallback={<ErrorState text="An error occurred in the application." />}
     >
       <Suspense fallback={<Loader />}>{children}</Suspense>
     </ErrorBoundary>
+    </>
   )
 }
-
 export default PrivateRoute
