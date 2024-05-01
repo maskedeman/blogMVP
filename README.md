@@ -2,7 +2,7 @@
 
 blogMVP is a minimal viable product for a blog application. It allows users to create, read, update, and delete blog posts. Users can also register, log in, and log out. Admin users have additional privileges, such as deleting any post.
 
-This project is built using Python for the backend with FastAPI as the web framework. The frontend is built using React. The project uses a PostgreSQL database for data storage. Authentication is handled using JSON Web Tokens (JWT).
+This project is built using Python for the backend with FastAPI as the web framework. The frontend is built using React with Vite. The project uses a MySQL database for data storage. Authentication is handled using JSON Web Tokens (JWT).
 
 ## Setup and Running the Application
 
