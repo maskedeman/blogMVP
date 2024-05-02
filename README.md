@@ -21,6 +21,11 @@ make run_client
  ```bash
 make run_server 
 ```
+### Create an admin
+ ```bash
+cd server
+python make_admin.py
+```
 ### Setup venv
  ```bash
 make env
